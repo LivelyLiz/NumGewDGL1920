@@ -1,6 +1,5 @@
 include("./integration_meth.jl")
 using Plots
-plotly()
 
 euler = MathConstants.e
 
@@ -30,7 +29,14 @@ end
 
 #plot
 ks = collect(1:k_max)
+
+plotly()
 p = plot(ks, estErr, label="error estimated", xlabel="k", xticks = 0:1:k_max, ylabel="error")
 plot!(p, ks, numErr, label="error numerical")
-savefig(p, "e2_t6.html")
-display(p)
+savefig(p, "../plot/e2_t6.html")
+#display(p)
+
+gr()
+p = plot(ks, estErr, label="error estimated", xlabel="k", xticks = 0:1:k_max, ylabel="error")
+plot!(p, ks, numErr, label="error numerical")
+savefig(p, "../plot/e2_t6.pdf")

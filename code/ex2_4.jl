@@ -1,6 +1,5 @@
 #Task 4
 using Plots
-plotly()
 
 y(x) = 4/15*x.^(5/2) - 19/15*x .+ 1 #.+ and .^ for pointwise
 ddy(x) = sqrt.(x)                   # sqrt. pointwise sqrt
@@ -32,6 +31,11 @@ ys_num = A\ys #solving the system of linear equations
 
 err = abs.(ys_num-ys_real) #getting the error
 
+plotly()
 p = plot(xs, err, title="Error of numerical method", label="error", xlabel="x", ylabel="abs(y_num-y_real)")
-savefig(p, "e2_t4.html")
-display(p)
+savefig(p, "../plot/e2_t4.html")
+#display(p)
+
+gr()
+p = plot(xs, err, title="Error of numerical method", label="error", xlabel="x", ylabel="abs(y_num-y_real)")
+savefig(p, "../plot/e2_t4.pdf")
