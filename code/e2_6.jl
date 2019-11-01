@@ -1,3 +1,4 @@
+#Task 6
 include("./integration_meth.jl")
 using Plots
 
@@ -11,7 +12,7 @@ x_start = 1
 
 #functions
 x(t) = -1.0/(t-1)
-f(x) = x^2
+f(x, t) = x^2
 err_est(h) = 4*(euler^2-1)*h
 
 #init
