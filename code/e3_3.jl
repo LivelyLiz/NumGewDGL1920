@@ -1,4 +1,4 @@
-#Task 6
+#Task 3
 include("./integration_meth.jl")
 using Plots
 
@@ -25,8 +25,8 @@ xs = [collect(x_start:hs[j]:x_end) for j in 1:length(hs)]
 plots = []
 
 for (i, h) in enumerate(hs)
-    push!(expl_euler_vals, expl_euler_vec(x_start, x_end, y_start, dy, h))
-    push!(impl_euler_vals, impl_euler_vec(x_start, x_end, y_start, dy, ddy, h))
+    push!(expl_euler_vals, expl_euler_all(x_start, x_end, y_start, dy, h))
+    push!(impl_euler_vals, impl_euler_all(x_start, x_end, y_start, dy, ddy, h))
 end
 
 #plot
