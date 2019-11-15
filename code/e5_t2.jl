@@ -1,6 +1,5 @@
-#Task 2
 include("./integration_meth.jl")
-include("./e5_t4.jl")
+include("./e5_t4.jl") # runge kutta
 using Plots
 
 euler = MathConstants.e
@@ -32,44 +31,30 @@ end
 
 F_ks(x, s, ks) = [dr(x,s), dz(x,s), dphi_ks(x,s,ks)]
 
-#Task 2
-#init
-kss = collect(200:100:500)
-n = 100
+function plot_droplet(inte_method, plot_filename)
+    send_plots = []
+    kss = collect(200:100:500)
+    h = 0.1 * 10^(-3) #because we use meters instead of mm
 
-plotly()
-send_plots = []
-
-for (j, s_end) in enumerate(ss_end)
-    h = (s_end-s_start)/n
-    pl = plot(title="s_end = "*string(s_end))
-    for (i, ks) in enumerate(kss)
-        F(x, s) = F_ks(x, s, ks)
-        vals = expl_euler_vec_all(s_start, s_end, x_start, F, h)
-        plot!(pl, vals[:,1], vals[:,2], label="ks = "*string(ks))
+    for (j, s_end) in enumerate(ss_end)
+        pl = plot(title="s_end = "*string(s_end))
+        for (i, ks) in enumerate(kss)
+            F(x, s) = F_ks(x, s, ks)
+            vals = inte_method(s_start, s_end, x_start, F, h)
+            plot!(pl, vals[:,1], vals[:,2], label="ks = "*string(ks))
+        end
+        push!(send_plots, pl)
     end
-    push!(send_plots, pl)
+
+    plot_euler = plot(send_plots..., size=(1024,1024), xlabel="r(s) in m", ylabel="z(s) in m")
+    savefig(plot_euler, plot_filename)
 end
 
-plot_euler = plot(send_plots..., size=(1024,1024), xlabel="r(s) in m", ylabel="z(s) in m")
-savefig(plot_euler, "../plot/e5_t2_expl_euler.html")
+#Task 2
+#init
+plotly()
+plot_droplet(expl_euler_vec_all, "../plot/e5_t2_expl_euler.html")
 
 #Task 4
 #init
-h = 0.1 * 10^(-3) #because we use meters instead of mm
-
-send_plots = []
-
-for (j, s_end) in enumerate(ss_end)
-    h = (s_end-s_start)/n
-    pl = plot(title="s_end = "*string(s_end))
-    for (i, ks) in enumerate(kss)
-        F(x, s) = F_ks(x, s, ks)
-        vals = runge_kutta_vec_all(s_start, s_end, x_start, F, h)
-        plot!(pl, vals[:,1], vals[:,2], label="ks = "*string(ks))
-    end
-    push!(send_plots, pl)
-end
-
-plot_euler = plot(send_plots..., size=(1024,1024), xlabel="r(s) in m", ylabel="z(s) in m")
-savefig(plot_euler, "../plot/e5_t4_runge_kutta.html")
+plot_droplet(runge_kutta_vec_all, "../plot/e5_t5_runge_kutta.html")
