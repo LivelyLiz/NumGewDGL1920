@@ -6,11 +6,11 @@ x_start... x(t_start)
 f      ... f(x, t) differential function
 h      ... sample point distance
 
-return the value for t_end
+return estimated value of x at point t_end
 """
 function expl_euler(t_start, t_end, x_start, f, h)
 
-    ts = collect(t_start+h:h:t_end)
+    ts = collect(t_start:h:(t_end-h))
     x_res = x_start
 
     for i = 1:size(ts,1)
@@ -28,13 +28,40 @@ t_start... given start t value
 t_end  ... point where we want our x(t) value
 x_start... x(t_start)
 f      ... f(x, t) differential function
+f2     ... f2(f(x,t),t) second order derivative of x
+h      ... sample point distance
+
+return estimated value of x at point t_end
+"""
+function expl_euler_mod(t_start, t_end, x_start, f, f2, h)
+
+    ts = collect(t_start:h:(t_end-h))
+    x_res = x_start
+
+    for i = 1:(size(ts,1))
+        #explicit Euler
+        #x_j+1 = x_j + f(t_j, x_j)*(t_j+1 - t_j) + f(t_j, f(t_j, x_j))*(t_j+1 - t_j)^2*1/2
+        x_res = x_res +
+                f(x_res, ts[i])*h +
+                f2(f(x_res, ts[i]), ts[i]) * 1/2 * h^2
+    end
+
+    return x_res
+end
+
+"""
+Explicit Euler with inbetween steps
+t_start... given start t value
+t_end  ... point where we want our x(t) value
+x_start... x(t_start)
+f      ... f(x, t) differential function
 h      ... sample point distance
 
 return a vector with inbetween steps
 """
 function expl_euler_all(t_start, t_end, x_start, f, h)
 
-    ts = collect(t_start+h:h:t_end)
+    ts = collect(t_start:h:(t_end-h))
     x_res = zeros(size(ts,1)+1)
     x_res[1] = x_start
 
@@ -47,9 +74,40 @@ function expl_euler_all(t_start, t_end, x_start, f, h)
     return x_res
 end
 
+"""
+Explicit Euler with inbetween steps
+t_start... given start t value
+t_end  ... point where we want our x(t) value
+x_start... x(t_start)
+f      ... f(x, t) differential function
+f2     ... f2(f(x,t),t) second order derivative of x
+h      ... sample point distance
+
+return a vector with inbetween steps
+"""
+function expl_euler_mod_all(t_start, t_end, x_start, f, f2, h)
+
+    ts = collect(t_start:h:(t_end-h))
+    x_res = zeros(size(ts,1)+1)
+    x_res[1] = x_start
+
+    for i = 1:(size(ts,1))
+        #explicit Euler
+        #x_j+1 = x_j + f(t_j, x_j)*(t_j+1 - t_j) + f(t_j, f(t_j, x_j))*(t_j+1 - t_j)^2*1/2
+        #x_res[i+1] = x_res[i] +
+        #            f(x_res[i], ts[i])*h +
+        #            f2(f(x_res[i], ts[i]), ts[i]) * 1.0/2.0 * h^2
+        x_res[i+1] = x_res[i] +
+                    f(x_res[i], ts[i])*h +
+                    f2(f(x_res[i], ts[i]), ts[i]) * (h^2.0)/2.0
+    end
+
+    return x_res
+end
+
 function expl_euler_vec_all(t_start, t_end, x_start, f, h)
 
-    ts = collect(t_start+h:h:t_end)
+    ts = collect(t_start:h:(t_end-h))
     x_res = zeros((size(ts,1)+1, size(x_start,1)))
     x_res[1,:] = x_start
 
