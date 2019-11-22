@@ -120,6 +120,113 @@ function expl_euler_vec_all(t_start, t_end, x_start, f, h)
     return x_res
 end
 
+"""
+Explicit Runge Kutta with inbetween steps
+t_start... given start t value
+t_end  ... point where we want our x(t) value
+x_start... x(t_start)
+f      ... f(x, t) differential function
+h      ... sample point distance
+l      ... number of steps
+bs     ... bs from the tableau
+cs     ... cs from the tableau
+as     ... as from the tableau
+
+return a vector with inbetween steps
+"""
+function expl_runge_kutta_all(t_start, t_end, x_start, f, h, l, bs, cs, as)
+
+    ts = collect(t_start:h:(t_end-h))
+    x_res = zeros((size(ts,1)+1, size(x_start,1)))
+    x_res[1] = x_start
+
+    for i = 1:(size(ts,1))
+        ks = zeros(l)
+        ks[1] = f(x_res[i], ts[i])
+        for j in 2:l
+            ks[j] = f(x_res[i] .+ h*sum(as[j, 1:(j-1)].*ks[1:(j-1)]) ,ts[i] + cs[j]*h)
+        end
+
+        x_res[i+1] = x_res[i] .+ h*sum(bs.*ks)
+    end
+
+    return x_res
+end
+
+"""
+Standard fourth order Runge Kutta with inbetween steps
+t_start... given start t value
+t_end  ... point where we want our x(t) value
+x_start... x(t_start)
+f      ... f(x, t) differential function
+h      ... sample point distance
+
+return a vector with inbetween steps
+"""
+function standard_runge_kutta_all(t_start, t_end, x_start, f, h)
+    bs = [1/6, 1/3, 1/3, 1/6]
+    cs = [0, 1/2, 1/2, 1]
+    as = [0.0  0.0  0.0  0.0;
+          0.5  0.0  0.0  0.0;
+          0.0  0.5  0.0  0.0;
+          0.0  0.0  1.0  0.0]
+
+    return expl_runge_kutta_all(t_start, t_end, x_start, f, h, 4, bs, cs, as)
+end
+
+"""
+Explicit Runge Kutta with inbetween steps for vectors
+t_start... given start t value
+t_end  ... point where we want our x(t) value
+x_start... x(t_start)
+f      ... f(x, t) differential function
+h      ... sample point distance
+l      ... number of steps
+bs     ... bs from the tableau
+cs     ... cs from the tableau
+as     ... as from the tableau
+
+return a vector with inbetween steps
+"""
+function expl_runge_kutta_vec_all(t_start, t_end, x_start, f, h, l, bs, cs, as)
+
+    ts = collect(t_start:h:(t_end-h))
+    x_res = zeros((size(ts,1)+1, size(x_start,1)))
+    x_res[1,:] = x_start
+
+    for i = 1:(size(ts,1))
+        ks = zeros((l,size(x_start,1)))
+        ks[1,:] = f(x_res[i,:], ts[i])
+        for j in 2:l
+            ks[j,:] = f(x_res[i,:] .+ h*sum(as[j, 1:(j-1)].*ks[1:(j-1), :], dims=1) ,ts[i] + cs[j]*h)
+        end
+
+        x_res[i+1, :] = x_res[i,:]' .+ h*sum(bs.*ks, dims=1)
+    end
+
+    return x_res
+end
+
+"""
+Standard fourth order Runge Kutta with inbetween steps for vectors
+t_start... given start t value
+t_end  ... point where we want our x(t) value
+x_start... x(t_start)
+f      ... f(x, t) differential function
+h      ... sample point distance
+
+return a vector with inbetween steps
+"""
+function standard_runge_kutta_vec_all(t_start, t_end, x_start, f, h)
+    bs = [1/6, 1/3, 1/3, 1/6]
+    cs = [0, 1/2, 1/2, 1]
+    as = [0.0  0.0  0.0  0.0;
+          0.5  0.0  0.0  0.0;
+          0.0  0.5  0.0  0.0;
+          0.0  0.0  1.0  0.0]
+
+    return expl_runge_kutta_vec_all(t_start, t_end, x_start, f, h, 4, bs, cs, as)
+end
 
 """
 Implicit Euler with inbetween steps
