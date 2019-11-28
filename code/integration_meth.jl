@@ -197,11 +197,12 @@ function expl_runge_kutta_vec_all(t_start, t_end, x_start, f, h, l, bs, cs, as)
     for i = 1:(size(ts,1))
         ks = zeros((l,size(x_start,1)))
         ks[1,:] = f(x_res[i,:], ts[i])
+
         for j in 2:l
-            ks[j,:] = f(x_res[i,:] .+ h*sum(as[j, 1:(j-1)].*ks[1:(j-1), :], dims=1) ,ts[i] + cs[j]*h)
+            ks[j,:] = f(x_res[i,:] + h*sum(as[j, 1:(j-1)].*ks[1:(j-1), :], dims=1)' ,ts[i] + cs[j]*h)
         end
 
-        x_res[i+1, :] = x_res[i,:]' .+ h*sum(bs.*ks, dims=1)
+        x_res[i+1, :] = x_res[i,:] + h*sum(bs.*ks, dims=1)'
     end
 
     return x_res
