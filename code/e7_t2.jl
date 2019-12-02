@@ -41,10 +41,16 @@ dX_1(X, t) = [-1  5;
 dX_2(X, t) = [ 0  1;
               -4  0] * X
 
-X_1(t) = [(-1 - 1im/2)*euler.^((-1 + 5im).*t) * 1im + (1 - 1im/2)*euler.^((1 + 5im).*t) * 1im;
-          (-1 - 1im/2)*euler.^((-1 + 5im).*t) * -1 + (1 - 1im/2)*euler.^((1 + 5im).*t)]
-X_2(t) = [(1/2 - 1im/2)*euler.^(2im.*t)       - (-1/2 - 1im/2)*euler.^(-2im.*t);
-          (1/2 - 1im/2)*euler.^(2im.*t) * 2im + (-1/2 - 1im/2)*euler.^(-2im.*t) * 2im]
+r = 1
+c1_1 = (1/2-1im)
+c2_1 = (1/2+1im)
+X_1(t) = [c1_1*euler.^((-1 + 5im).*t)         + c2_1*euler.^((-1 - 5im).*t);
+          c1_1*euler.^((-1 + 5im).*t) * 1im   + c2_1*euler.^((-1 - 5im).*t) * -1im]
+
+c1_2 = (1/2-1im/2)
+c2_2 = (1/2+1im/2)
+X_2(t) = [c1_2*euler.^(2im.*t)                + c2_2*euler.^(-2im.*t);
+          c1_2*euler.^(2im.*t) * 2im          + c2_2*euler.^(-2im.*t) * -2im]
 
 ts_1 = collect(t_start_1:h_1:t_end_1)
 ts_2 = collect(t_start_2:h_2:t_end_2)
