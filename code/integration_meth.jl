@@ -230,6 +230,34 @@ function standard_runge_kutta_vec_all(t_start, t_end, x_start, f, h)
 end
 
 """
+5-step Adam-Bashforth with inbetween steps for vector
+t_start... given start t value
+t_end  ... point where we want our x(t) value
+x_start... x(t_start)
+f      ... f(x, t) differential function
+h      ... sample point distance
+
+return a vector with inbetween steps
+"""
+function adams_bashforth_5_vec_all(t_start, t_end, x_start, f, h)
+
+    ts = collect(t_start:h:(t_end-h))
+    x_res = zeros((size(ts,1)+1, size(x_start,1)))
+    x_res[1:5,:] = expl_euler_vec_all(t_start, t_start+h*4, x_start, f, h)
+
+    for i = 5:(size(ts,1))
+        x_res[i+1,:] = x_res[i,:] + h*(
+                        (1901/720) * f(x_res[i,:], ts[i]) +
+                        (-2774/720)* f(x_res[i-1,:], ts[i-1]) +
+                        (2616/720) * f(x_res[i-2,:], ts[i-2]) +
+                        (-1274/720)* f(x_res[i-3,:], ts[i-3]) +
+                        (251/720)  * f(x_res[i-4,:], ts[i-4]))
+    end
+
+    return x_res
+end
+
+"""
 Implicit Euler with inbetween steps
 t_start... given start t value
 t_end  ... point where we want our x(t) value
