@@ -1,4 +1,18 @@
 """
+Order of convergence
+h1...   stepwidth used for error 1
+h2...   stepwidth used for error 2
+err1... error 1
+err2... error 2
+
+Error values are the error between the numerical
+and the analytical solution at a certain time t
+"""
+function ooc(h1, h2, err1, err2)
+    return (log(err1)-log(err2))/(log(h1)-log(h2))
+end
+
+"""
 Explicit Euler
 t_start... given start t value
 t_end  ... point where we want our x(t) value
@@ -175,6 +189,31 @@ function standard_runge_kutta_all(t_start, t_end, x_start, f, h)
 end
 
 """
+Modified euler (second order runge kutta)
+"""
+function second_order_runge_kutta_all(t_start, t_end, x_start, f, h)
+    bs = [0, 1/2]
+    cs = [0, 1]
+    as = [0.0  0.0;
+          0.5  0.0]
+
+    return expl_runge_kutta_all(t_start, t_end, x_start, f, h, 2, bs, cs, as)
+end
+
+"""
+Heun (second order runge kutta)
+"""
+function heun_runge_kutta_all(t_start, t_end, x_start, f, h)
+    bs = [0, 1]
+    cs = [0.5, 0.5]
+    as = [0.0  0.0;
+          1.0  0.0]
+
+    return expl_runge_kutta_all(t_start, t_end, x_start, f, h, 2, bs, cs, as)
+end
+
+
+"""
 Explicit Runge Kutta with inbetween steps for vectors
 t_start... given start t value
 t_end  ... point where we want our x(t) value
@@ -258,12 +297,204 @@ function adams_bashforth_5_vec_all(t_start, t_end, x_start, f, h)
 end
 
 """
+k-step Adams Bashforth
+t_start... given start t value
+t_end  ... point where we want our x(t) value
+x_start... x(t_start)
+f      ... f(x, t) differential function
+h      ... sample point distance
+k      ... number of steps k in [1,6]
+init_val_meth  ... one step method to obtain the first k steps
+"""
+function adams_bashforth_all(t_start, t_end, x_start, f, h, k, init_val_meth)
+
+    ts = collect(t_start:h:(t_end-h))
+    x_res = zeros(size(ts,1)+1)
+    x_res[1:k] = init_val_meth(t_start, t_start+h*(k-1), x_start, f, h)
+
+    coeffs = zeros(k)
+    if k == 1
+        coeffs[1] = 1
+    elseif k == 2
+        coeffs = [3, -1] * 1/2
+    elseif k == 3
+        coeffs = [23, -16, 5] * 1/12
+    elseif k == 4
+        coeffs = [55, -59, 37, 9] * 1/24
+    elseif k == 5
+        coeffs = [1901, -2774, 2616, -1274, 251] * 1/720
+    elseif k == 6
+        coeffs = [4277, -7923, 9982, -7298, 2877, -475] * 1/1440
+    else
+        return
+    end
+
+    for i = k:(size(ts,1))
+        x_res[i+1] = x_res[i]
+        for j = 1:k
+            x_res[i+1] += h*coeffs[j]* f(x_res[i-j+1], ts[i-j+1])
+        end
+    end
+
+    return x_res
+end
+
+"""
+k-step Nyström
+t_start... given start t value
+t_end  ... point where we want our x(t) value
+x_start... x(t_start)
+f      ... f(x, t) differential function
+h      ... sample point distance
+k      ... number of steps k in [1,6]
+init_val_meth  ... one step method to obtain the first k steps
+"""
+function nystroem_all(t_start, t_end, x_start, f, h, k, init_val_meth)
+
+    ts = collect(t_start:h:(t_end-h))
+    x_res = zeros(size(ts,1)+1)
+    x_res[1:k] = init_val_meth(t_start, t_start+h*(k-1), x_start, f, h)
+
+    coeffs = zeros(k)
+    if k == 2
+        coeffs = [2, 0]
+    elseif k == 3
+        coeffs = [7, -2, 1] * 1/3
+    elseif k == 4
+        coeffs = [8, -5, 4, -1] * 1/3
+    elseif k == 5
+        coeffs = [269, -266, 294, -146, 29] * 1/90
+    elseif k == 6
+        coeffs = [297, -406, 574, -426, 169, -28] * 1/90
+    else
+        return
+    end
+
+    for i = k:(size(ts,1))
+        x_res[i+1] = x_res[i-1]
+        for j = 1:k
+            x_res[i+1] += h*coeffs[j]* f(x_res[i-j+1], ts[i-j+1])
+        end
+    end
+
+    return x_res
+end
+
+"""
+k-step Adams Moulton
+t_start... given start t value
+t_end  ... point where we want our x(t) value
+x_start... x(t_start)
+f      ... f(x, t) differential function
+df     ... differential of f by x
+h      ... sample point distance
+k      ... number of steps k in [1,6]
+init_val_meth  ... one step method to obtain the first k steps
+"""
+function adams_moulton_all(t_start, t_end, x_start, f, df, h, k, init_val_meth)
+
+    ts = collect(t_start:h:t_end)
+    x_res = zeros(size(ts,1))
+    x_res[1:k] = init_val_meth(t_start, t_start+h*(k-1), x_start, f, h)
+
+    coeffs = zeros(k)
+    if k == 1
+        coeffs[1] = 1
+    elseif k == 2
+        coeffs = [1, 1] * 1/2
+    elseif k == 3
+        coeffs = [5, 8, -1] * 1/12
+    elseif k == 4
+        coeffs = [9, 19, -5, 1] * 1/24
+    elseif k == 5
+        coeffs = [251, 646, -264, 106, -19] * 1/720
+    elseif k == 6
+        coeffs = [475, 1427, -798, 482, -173, 27] * 1/1440
+    else
+        return
+    end
+
+    for i = k:(size(ts,1)-1)
+
+        x_approx = x_res[i]
+        sum_bf = 0
+        for l in 2:k
+            sum_bf += h*coeffs[l]*f(x_res[i-l+2], ts[i-l+2])
+        end
+
+        for j = 1:10
+            #use newton's method to approximate x_j+1
+            # g(x_j+1) 0 = x_j+1 - x_j - h*b*f(x_j+1, t_j+1) + h*sum(b*f)
+            # g'         = 1 - h*b*df
+            #newton: a_n+1 = a_n - g(a_n)/g'(a_n)
+            x_approx = x_approx -
+                      (x_approx-x_res[i]-h*coeffs[1]*f(x_approx,ts[i+1])-sum_bf)/
+                        (1-h*coeffs[1]*df(x_approx,ts[i+1]))
+        end
+        x_res[i+1] = x_approx
+    end
+
+    return x_res
+end
+
+"""
+k-step Milne Simpson
+t_start... given start t value
+t_end  ... point where we want our x(t) value
+x_start... x(t_start)
+f      ... f(x, t) differential function
+df     ... differential of f by x
+h      ... sample point distance
+k      ... number of steps k in [1,6]
+init_val_meth  ... one step method to obtain the first k steps
+"""
+function milne_simpson_all(t_start, t_end, x_start, f, df, h, k, init_val_meth)
+
+    ts = collect(t_start:h:t_end)
+    x_res = zeros(size(ts,1))
+    x_res[1:k] = init_val_meth(t_start, t_start+h*(k-1), x_start, f, h)
+
+    coeffs = zeros(k)
+    if k == 2
+        coeffs = [1, 4, 1] * 1/3
+    elseif k == 4
+        coeffs = [29, 124, 24, 4, -1] * 1/90
+    elseif k == 5
+        coeffs = [28, 129, -14, 14, -6, 1] * 1/90
+    else
+        return
+    end
+
+    for i = k:(size(ts,1)-1)
+
+        x_approx = x_res[i]
+        sum_bf = 0
+        for l in 2:(k+1)
+            sum_bf += h*coeffs[l]*f(x_res[i-l+2], ts[i-l+2])
+        end
+
+        for j = 1:10
+            #use newton's method to approximate x_j+1
+            # g(x_j+1) 0 = x_j+1 - x_j-1 - h*b*f(x_j+1, t_j+1) + h*sum(b*f)
+            # g'         = 1 - h*b*df
+            #newton: a_n+1 = a_n - g(a_n)/g'(a_n)
+            x_approx = x_approx -
+                      (x_approx-x_res[i-1]-h*coeffs[1]*f(x_approx,ts[i+1])-sum_bf)/
+                        (1-h*coeffs[1]*df(x_approx,ts[i+1]))
+        end
+        x_res[i+1] = x_res[i-1] + h*coeffs[1]*f(x_approx,ts[i+1]) + sum_bf
+    end
+
+    return x_res
+end
+
+"""
 Implicit Euler with inbetween steps
 t_start... given start t value
 t_end  ... point where we want our x(t) value
 x_start... x(t_start)
 f      ... f(x, t) differential function
-df     ... differential of f by y
+df     ... differential of f by x
 h      ... sample point distance
 return a vector with inbetween steps
 """
