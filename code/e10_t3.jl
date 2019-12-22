@@ -2,12 +2,12 @@
 include("./integration_meth.jl")
 using LinearAlgebra
 using Plots
-pyplot()
+plotly()
 
 euler = MathConstants.e
 
 #start values
-h = 0.001
+h = 0.5
 x_start = 0
 t_start = 0
 t_end = 10.0
@@ -17,7 +17,7 @@ f(x, t) = -x + euler^(-t)*cos(t)
 df(x, t) = -1.0
 x(t) = euler.^(-t).*sin.(t)
 
-function impl_linear_two_step_all(t_start, t_end, x_start, f, df, h, alpha, newton_steps=1)
+function impl_linear_two_step_all(t_start, t_end, x_start, f, df, h, alpha, newton_steps=10)
     ts = collect(t_start:h:t_end)
     x_res = zeros(size(ts,1))
     x_res[1:2] = standard_runge_kutta_all(t_start, t_start+h, x_start, f, h)
@@ -42,12 +42,13 @@ function impl_linear_two_step_all(t_start, t_end, x_start, f, df, h, alpha, newt
     return x_res
 end
 
-alphas = [-1.0, -0.999, -0.9, -0.8, -0.3, 0, 0.3, 0.8, 0.9, 0.999, 1.0]
+alphas = [-1.001, -1.0, -0.999, -0.9, -0.8, 0, 0.8, 0.9, 0.999, 1.0, 1.001]
+
+ts_analy = collect(t_start:0.001:t_end)
+x_analy = x(ts_analy)
+p = plot(ts_analy, x_analy, label = "Analytical", yticks=-0.05:0.05:0.35, width=3, linealpha=0.5, size=(1000, 800))
 
 ts = collect(t_start:h:t_end)
-x_analy = x(ts)
-p = plot(ts, x_analy, label = "Analytical", width=2, linealpha=0.5, size=(1000, 800))
-
 for alpha in alphas
     xs_impl = impl_linear_two_step_all(t_start, t_end, x_start, f, df, h, alpha)
     println("Error for alpha $alpha, h $h, t_end $t_end:\n $(xs_impl[end]-x_analy[end])")
