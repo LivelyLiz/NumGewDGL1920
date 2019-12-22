@@ -1,4 +1,33 @@
 """
+X_0   ... start value for newton method
+Df    ... Jacobian matrix of multivariate function (Df(X)) taking X as argument
+neg_f ... negative of function f taking X as argument
+num_iter ... number of iterations for newton method
+(t is constant during Newton method)
+
+return the calculated value
+"""
+function newton_method_vec(X_0, Df, neg_f, num_iter)
+    """
+    multivariate Newton method
+    X_k+1 = X_k - inverse(Df(X_k))*f(X_k)
+
+    to avoid inverse
+    solve Df(X_k)*s_k = -f(X_k)
+    and X_k+1 = X_k + s_k
+    """
+
+    X = X_0
+    for i in 1:num_iter
+        #backslash operator solving system of equations if possible
+        s = Df(X)\neg_f(X)
+        X = X + s
+    end
+
+    return X
+end
+
+"""
 Order of convergence
 h1...   stepwidth used for error 1
 h2...   stepwidth used for error 2
@@ -331,6 +360,7 @@ function adams_bashforth_all(t_start, t_end, x_start, f, h, k, init_val_meth)
 
     for i = k:(size(ts,1))
         x_res[i+1] = x_res[i]
+        # x_j+1 = x_j + h*coeff_0*x_j + h*coeff_1*x_j-1+....
         for j = 1:k
             x_res[i+1] += h*coeffs[j]* f(x_res[i-j+1], ts[i-j+1])
         end
@@ -370,6 +400,7 @@ function nystroem_all(t_start, t_end, x_start, f, h, k, init_val_meth)
         return
     end
 
+    # x_j+1 = x_j-1 + h*coeff_0*x_j + h*coeff_1*x_j-1+....
     for i = k:(size(ts,1))
         x_res[i+1] = x_res[i-1]
         for j = 1:k
@@ -415,7 +446,7 @@ function adams_moulton_all(t_start, t_end, x_start, f, df, h, k, init_val_meth)
     end
 
     for i = k:(size(ts,1)-1)
-
+        # x_j+1 = x_j + h*coeff_0*x_j+1 + h*coeff_1*x_j+h*coeff_2*x_j-1+...
         x_approx = x_res[i]
         sum_bf = 0
         for l in 2:k
@@ -466,7 +497,7 @@ function milne_simpson_all(t_start, t_end, x_start, f, df, h, k, init_val_meth)
     end
 
     for i = k:(size(ts,1)-1)
-
+        # x_j+1 = x_j-1 + h*coeff_0*x_j+1 + h*coeff_1*x_j+h*coeff_2*x_j-1+...
         x_approx = x_res[i]
         sum_bf = 0
         for l in 2:(k+1)
@@ -498,7 +529,7 @@ df     ... differential of f by x
 h      ... sample point distance
 return a vector with inbetween steps
 """
-function impl_euler_all(t_start, t_end, x_start, f, df, h)
+function impl_euler_all(t_start, t_end, x_start, f, df, h, newton_steps=10)
 
     ts = collect(t_start:h:t_end)
     x_res = zeros(size(ts,1))
@@ -508,12 +539,38 @@ function impl_euler_all(t_start, t_end, x_start, f, df, h)
         #implicit Euler
         #x_j+1 = x_j + f(t_j+1, x_j+1)*(t_j+1 - t_j)
         x_approx = x_res[i]
-        for j = 1:10
+        for j = 1:newton_steps
             #use newton's method to approximate 0 = x_j+1 - x_j - h*f(x_j+1, t_j+1)
             #newton: a_n+1 = a_n - f(a_n)/f'(a_n)
             x_approx = x_approx - (x_approx-x_res[i]-h*f(x_approx,ts[i+1]))/(1-h*df(x_approx,ts[i+1]))
         end
         x_res[i+1] = x_approx
+    end
+
+    return x_res
+end
+
+"""
+Implicit Euler with inbetween steps for vectors
+t_start... given start t value
+t_end  ... point where we want our x(t) value
+x_start... x(t_start)
+f      ... f(x, t) differential function
+df     ... jacobian of f by x
+h      ... sample point distance
+return a vector with inbetween steps
+"""
+function impl_euler_vec_all(t_start, t_end, x_start, f, df, h, newton_steps)
+
+    ts = collect(t_start:h:t_end)
+    x_res = zeros((size(ts,1), size(x_start,1)))
+    x_res[1,:] = x_start
+
+    for i = 1:(size(ts,1)-1)
+        neg_g(X) = -X + x_res[i,:] + h*f(X, ts[i+1])
+        Dg(X) = LinearAlgebra.I(size(x_start,1)) - h*df(X, ts[i+1])
+
+        x_res[i+1,:] = newton_method_vec(x_res[i,:], Dg, neg_g, newton_steps)
     end
 
     return x_res
