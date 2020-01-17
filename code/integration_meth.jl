@@ -42,6 +42,37 @@ function ooc(h1, h2, err1, err2)
 end
 
 """
+Estimates the error for adaptive runge kutta method
+
+x_1    ... value (vector) obtained with method of higher Order
+xhat_1 ... value obtained with lower order
+
+return highest error over all dimensions
+"""
+function error_est(x_0, x_1, xhat_1)
+    err = 0
+    for i in 1:length(x_1)
+        val = abs(x_1[i] - xhat_1[i])/abs(1 + x_0[i])
+        err = max(err, val)
+    end
+    return err
+end
+
+"""
+Calculates the h used for adaptive runge kutta method
+
+tol        ... tolerance
+err        ... error (estimated)
+min_order  ... minimum order of the methods used
+h          ... old value for h
+
+return the new h to use for the ODE solver
+"""
+function adaptive_h(tol, err, min_order, h)
+    return min(2, max(0.5, 0.9*(tol/err)^(1/(min_order+1)))) * h
+end
+
+"""
 Explicit Euler
 t_start... given start t value
 t_end  ... point where we want our x(t) value
@@ -241,7 +272,6 @@ function heun_runge_kutta_all(t_start, t_end, x_start, f, h)
     return expl_runge_kutta_all(t_start, t_end, x_start, f, h, 2, bs, cs, as)
 end
 
-
 """
 Explicit Runge Kutta with inbetween steps for vectors
 t_start... given start t value
@@ -274,6 +304,94 @@ function expl_runge_kutta_vec_all(t_start, t_end, x_start, f, h, l, bs, cs, as)
     end
 
     return x_res
+end
+
+"""
+step for adaptive runge kutta
+"""
+function rk_step(x_j, t_j, h, l, as, bs, cs)
+
+    ks = zeros((l,size(x_j,1)))
+    ks[1,:] = f(x_j, t_j)
+
+    for j in 2:l
+        ks[j,:] = f(x_j + h*sum(as[j, 1:(j-1)].*ks[1:(j-1), :], dims=1)' ,t_j + cs[j]*h)
+    end
+
+    return x_j + h*sum(bs[1,:].*ks, dims=1)', x_j + h*sum(bs[2,:].*ks, dims=1)'
+
+end
+
+"""
+Adaptive explicit Runge Kutta with inbetween steps for vectors
+t_start... given start t value
+t_end  ... point where we want our x(t) value
+x_start... x(t_start)
+f      ... f(x, t) differential function
+h_start... initial sample point distance
+l      ... number of steps
+bs     ... bs from the tableau, matrix, first row is the higher order method
+cs     ... cs from the tableau
+as     ... as from the tableau
+tol    ... tolerance of the adaptive method
+min_order ... order of the worse method
+
+return a vector with inbetween steps and a vector with time steps
+"""
+function adaptive_expl_runge_kutta_vec_all(t_start, t_end, x_start, f, h_start, l, bs, cs, as, tol, min_order)
+
+    ts = [t_start]
+    x_res = []
+    push!(x_res, x_start)
+
+    i = 1
+    h = h_start
+
+    while ts[end] < t_end
+        h = h_start
+
+        ks = zeros((l,size(x_start,1)))
+        ks[1,:] = f(x_res[end], ts[i])
+
+        for j in 2:l
+            ks[j,:] = f(x_res[end] + h*sum(as[j, 1:(j-1)].*ks[1:(j-1), :], dims=1)' ,ts[i] + cs[j]*h)
+        end
+
+        # method with higher order, method with lower order
+        x_1, xhat_1 = rk_step(x_res[end], ts[end], h, l, as, bs, cs)
+
+        err = error_est(x_res[end], x_1, xhat_1)
+
+        while err > tol
+            h_new = adaptive_h(tol, err, min_order, h)
+
+            # no change, we got the minimal h
+            if h_new == h
+                break
+            else
+                h = h_new
+            end
+
+            x_1, xhat_1 = rk_step(x_res[end], ts[end], h, l, as, bs[1,:], cs)
+
+            err = error_est(x_res[end], x_1, xhat_1)
+        end
+
+        if ts[i]+h > t_end
+            h = t_end - ts[i]
+        end
+
+        x_1 = x_res[end] + h*sum(bs[1,:].*ks, dims=1)'
+
+        push!(ts, ts[end]+h)
+        push!(x_res, x_1)
+
+        println(ts[end])
+
+        i += 1
+    end
+
+    return x_res, ts
 end
 
 """
@@ -514,6 +632,65 @@ function milne_simpson_all(t_start, t_end, x_start, f, df, h, k, init_val_meth)
                         (1-h*coeffs[1]*df(x_approx,ts[i+1]))
         end
         x_res[i+1] = x_res[i-1] + h*coeffs[1]*f(x_approx,ts[i+1]) + sum_bf
+    end
+
+    return x_res
+end
+
+"""
+k-step BDF method
+t_start... given start t value
+t_end  ... point where we want our x(t) value
+x_start... x(t_start)
+f      ... f(x, t) differential function
+df     ... differential of f by x
+h      ... sample point distance
+k      ... number of steps k in [1,6]
+init_val_meth  ... one step method to obtain the first k steps
+"""
+function BDF_all(t_start, t_end, x_start, f, df, h, k, init_val_meth)
+
+    # coeff_0*x_j+1 + coeff_1*x_j + coeff_2 * x_j-1 +.... = h * f(x_j+1,t_j+1)
+
+    ts = collect(t_start:h:t_end)
+    x_res = zeros(size(ts,1))
+    x_res[1:k] = init_val_meth(t_start, t_start+h*(k-1), x_start, f, h)
+
+    coeffs = zeros(k)
+    if k == 1
+        coeffs = [1, -1]
+    elseif k == 2
+        coeffs = [1.5, -2.0, 0.5]
+    elseif k == 3
+        coeffs = [11.0/6, -3, 1.5, -1.0/3]
+    elseif k == 4
+        coeffs = [25.0/12, -4, 3, -4.0/3, 0.25]
+    elseif k == 5
+        coeffs = [137.0/60, -5, 5, -10.0/3, 1.25, -0.2]
+    elseif k == 6
+        coeffs = [147.0/60, -6, 15.0/2, -20.0/3, 15.0/4, -6.0/5, 1.0/6]
+    else
+        return
+    end
+
+    for i = k:(size(ts,1)-1)
+        # coeff_1*x_j + coeff_2 * x_j-1 +....+coeffs_k*x_j+1-k
+        x_approx = x_res[i]
+        sum_prev = 0
+        for l in 2:(k+1)
+            sum_prev += coeffs[l]*f(x_res[i-l+2], ts[i-l+2])
+        end
+
+        for j = 1:10
+            #use newton's method to approximate x_j+1
+            # g(x_j+1) 0 = coeff_0*x_j+1 + coeff_1*x_j + ... - h*f(x_j+1, t_j+1)
+            # g'         = 1 - h*df
+            #newton: a_n+1 = a_n - g(a_n)/g'(a_n)
+            x_approx = x_approx -
+                      (coeffs[0]*x_approx + sum_prev - h*f(x_approx,ts[i+1]))/
+                        (1-h*df(x_approx,ts[i+1]))
+        end
+        x_res[i+1] = x_approx
     end
 
     return x_res
