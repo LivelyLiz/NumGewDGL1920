@@ -335,10 +335,11 @@ cs     ... cs from the tableau
 as     ... as from the tableau
 tol    ... tolerance of the adaptive method
 min_order ... order of the worse method
+h_min  ... minimal h where the algorithm will continue although not meeting the tolerance value
 
 return a vector with inbetween steps and a vector with time steps
 """
-function adaptive_expl_runge_kutta_vec_all(t_start, t_end, x_start, f, h_start, l, bs, cs, as, tol, min_order)
+function adaptive_expl_runge_kutta_vec_all(t_start, t_end, x_start, f, h_start, l, bs, cs, as, tol, min_order, break_on_min_h =true, h_min=0.00001)
 
     ts = [t_start]
     x_res = []
@@ -350,19 +351,12 @@ function adaptive_expl_runge_kutta_vec_all(t_start, t_end, x_start, f, h_start, 
     while ts[end] < t_end
         h = h_start
 
-        ks = zeros((l,size(x_start,1)))
-        ks[1,:] = f(x_res[end], ts[i])
-
-        for j in 2:l
-            ks[j,:] = f(x_res[end] + h*sum(as[j, 1:(j-1)].*ks[1:(j-1), :], dims=1)' ,ts[i] + cs[j]*h)
-        end
-
         # method with higher order, method with lower order
         x_1, xhat_1 = rk_step(x_res[end], ts[end], h, l, as, bs, cs)
 
         err = error_est(x_res[end], x_1, xhat_1)
 
-        while err > tol
+        while err > tol && (h > h_min || !break_on_min_h)
             h_new = adaptive_h(tol, err, min_order, h)
 
             # no change, we got the minimal h
@@ -372,7 +366,7 @@ function adaptive_expl_runge_kutta_vec_all(t_start, t_end, x_start, f, h_start, 
                 h = h_new
             end
 
-            x_1, xhat_1 = rk_step(x_res[end], ts[end], h, l, as, bs[1,:], cs)
+            x_1, xhat_1 = rk_step(x_res[end], ts[end], h, l, as, bs, cs)
 
             err = error_est(x_res[end], x_1, xhat_1)
         end
@@ -381,12 +375,8 @@ function adaptive_expl_runge_kutta_vec_all(t_start, t_end, x_start, f, h_start, 
             h = t_end - ts[i]
         end
 
-        x_1 = x_res[end] + h*sum(bs[1,:].*ks, dims=1)'
-
         push!(ts, ts[end]+h)
         push!(x_res, x_1)
-
-        println(ts[end])
 
         i += 1
     end
