@@ -347,6 +347,7 @@ function adaptive_expl_runge_kutta_vec_all(t_start, t_end, x_start, f, h_start, 
 
     i = 1
     h = h_start
+    err = 0
 
     while ts[end] < t_end
         #h = h_start
@@ -355,7 +356,7 @@ function adaptive_expl_runge_kutta_vec_all(t_start, t_end, x_start, f, h_start, 
         x_1, xhat_1 = rk_step(x_res[end], ts[end], h, l, as, bs, cs)
 
         err = error_est(x_res[end], x_1, xhat_1)
-        h = adaptive_h(tol, err, min_order, h)
+        #h = adaptive_h(tol, err, min_order, h)
 
         while err > tol && (h > h_min || !break_on_min_h)
             h_new = adaptive_h(tol, err, min_order, h)
@@ -379,6 +380,7 @@ function adaptive_expl_runge_kutta_vec_all(t_start, t_end, x_start, f, h_start, 
         push!(ts, ts[end]+h)
         push!(x_res, x_1)
 
+        h = adaptive_h(tol, err, min_order, h)
         i += 1
     end
 

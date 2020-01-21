@@ -1,3 +1,6 @@
+using Plots
+pyplot()
+
 euler = MathConstants.e
 pi = MathConstants.pi
 
@@ -24,7 +27,7 @@ function root_locus(phi, coeffs)
     roh = 0
     sigma = (euler.^(1im * phi)).^(length(coeffs)-1)
     for i in 1:length(coeffs)
-        roh = roh .+ coeffs[length(coeffs)-i+1]*(euler.^(1im*phi)).^(length(coeffs)-i+1)
+        roh = roh .+ coeffs[length(coeffs)-i+1]*(euler.^(1im*phi)).^(i-1)
     end
 
     return roh./sigma

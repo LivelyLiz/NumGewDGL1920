@@ -5,7 +5,7 @@ gr()
 
 # start values
 t_start = 0.0
-t_end = 10.0
+t_end = 60.0
 y_start = [1; 1]
 h_start = 1.0
 
