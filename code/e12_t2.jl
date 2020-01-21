@@ -1,7 +1,7 @@
 include("integration_meth.jl")
 
-#using Plots
-#gr()
+using Plots
+pyplot()
 
 # start values
 t_start = 0.0

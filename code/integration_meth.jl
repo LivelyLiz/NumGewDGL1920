@@ -349,12 +349,13 @@ function adaptive_expl_runge_kutta_vec_all(t_start, t_end, x_start, f, h_start, 
     h = h_start
 
     while ts[end] < t_end
-        h = h_start
+        #h = h_start
 
         # method with higher order, method with lower order
         x_1, xhat_1 = rk_step(x_res[end], ts[end], h, l, as, bs, cs)
 
         err = error_est(x_res[end], x_1, xhat_1)
+        h = adaptive_h(tol, err, min_order, h)
 
         while err > tol && (h > h_min || !break_on_min_h)
             h_new = adaptive_h(tol, err, min_order, h)
