@@ -7,7 +7,7 @@ gr()
 t_start = 0.0
 t_end = 10.0
 y_start = [1; 1]
-h_start = 0.01
+h_start = 1.0
 
 # adaptive rk values
 tolerance = 10^(-4)
